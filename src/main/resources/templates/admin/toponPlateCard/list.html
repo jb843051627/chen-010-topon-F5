@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('门楼牌号段建档卡')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">段卡号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="billNo" placeholder="" class="layui-input">
+                </div>
+
+                <label class="layui-form-label">区划代码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="siteNo" placeholder="" class="layui-input">
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="toponPlateCard-query">
+                    <i class="layui-icon layui-icon-search"></i>
+                    查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i>
+                    重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="toponPlateCard-table" lay-filter="toponPlateCard-table"></table>
+    </div>
+</div>
+</body>
+
+<!-- 门脸只留「登记」一处 -->
+<script type="text/html" id="toponPlateCard-toolbar">
+    <button shiro:hasPermission="topon:toponPlateCard:add" class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+        <i class="layui-icon layui-icon-add-1"></i>
+        登记
+    </button>
+</script>
+
+<script type="text/html" id="toponPlateCard-grade">
+    {{#if (d.gradeLevel == 1) { }}
+    <span class="layui-badge layui-bg-green">一档</span>
+    {{# }else if(d.gradeLevel == 2){ }}
+    <span class="layui-badge layui-bg-blue">二档</span>
+    {{# }else if(d.gradeLevel == 3){ }}
+    <span class="layui-badge layui-bg-orange">三档</span>
+    {{# } }}
+</script>
+
+<script type="text/html" id="toponPlateCard-status">
+    {{#if (d.status == 0) { }}
+    <span class="layui-badge">待核对</span>
+    {{# }else if(d.status == 1){ }}
+    <span class="layui-badge layui-bg-blue">已核对</span>
+    {{# }else if(d.status == 2){ }}
+    <span class="layui-badge layui-bg-green">已定档</span>
+    {{# } }}
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery'], function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+
+        let MODULE_PATH = rootPath+"/ToponPlateCardController/";
+        let cols = [
+            [
+                {title: 'ID', field: 'id', align: 'center', hide: true},
+                {title: '段卡号', field: 'billNo', align: 'left'},
+                {title: '区划代码', field: 'siteNo', align: 'center'},
+                {title: '可编号数(个)', field: 'qty', align: 'right'},
+                {title: '本年度新编(个)', field: 'fineAmt', align: 'right'},
+                {title: '容量档', field: 'gradeLevel', align: 'center', toolbar: '#toponPlateCard-grade'},
+                {title: '进展', field: 'status', align: 'center', toolbar: '#toponPlateCard-status'},
+                {title: '创建人', field: 'createBy', align: 'center'},
+                {title: '经手人', field: 'updateBy', align: 'center'},
+                {title: '创建时间', field: 'createTime', align: 'center'}
+            ]
+        ]
+
+        //table表单列表
+        table.render({
+            elem: '#toponPlateCard-table',
+            url: MODULE_PATH + 'list',
+            page: true,
+            method: 'get',
+            cols: cols,
+            skin: 'line',
+            toolbar: '#toponPlateCard-toolbar',
+            defaultToolbar: [{
+                layEvent: 'refresh',
+                icon: 'layui-icon-refresh',
+            }, 'filter', 'print', 'exports']
+        });
+
+        //table工具栏绑定
+        table.on('toolbar(toponPlateCard-table)', function (obj) {
+            if (obj.event === 'add') {
+                window.add();
+            } else if (obj.event === 'refresh') {
+                window.refresh();
+            }
+        });
+
+        //查询按钮绑定
+        form.on('submit(toponPlateCard-query)', function (data) {
+            table.reload('toponPlateCard-table', {where: data.field})
+            return false;
+        });
+
+        //登记
+        window.add = function () {
+            layer.open({
+                type: 2,
+                title: '门楼牌号段立卡登记',
+                shade: 0.1,
+                area: ['500px', '500px'],
+                content: MODULE_PATH + 'add'
+            });
+        }
+
+        //刷新按钮
+        window.refresh = function () {
+            table.reload('toponPlateCard-table');
+        }
+    })
+</script>
+</html>
