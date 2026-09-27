@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('门楼牌号段卡清单')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">段卡号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="billNo" placeholder="段卡号(系统不代填)" class="layui-input">
+                </div>
+                <label class="layui-form-label">街巷名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="roadName" placeholder="街巷名称" class="layui-input">
+                </div>
+                <label class="layui-form-label">乡镇街道区划</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="siteNo" placeholder="区划代码" class="layui-input">
+                </div>
+                <label class="layui-form-label">进展</label>
+                <div class="layui-input-inline">
+                    <select name="status" class="layui-input">
+                        <option value="">全部</option>
+                        <option value="0">待核对</option>
+                        <option value="1">已核对</option>
+                        <option value="2">已定档</option>
+                    </select>
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="plate-query">
+                    <i class="layui-icon layui-icon-search"></i> 查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i> 重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="plate-table" lay-filter="plate-table"></table>
+    </div>
+</div>
+</body>
+
+<script type="text/html" id="plate-toolbar">
+    <button shiro:hasPermission="topon:toponPlateCard:add" class="pear-btn pear-btn-primary pear-btn-md" lay-event="register">
+        <i class="layui-icon layui-icon-add-1"></i> 登记
+    </button>
+    <button shiro:hasPermission="topon:toponPlateCard:list" class="pear-btn pear-btn-normal pear-btn-md" lay-event="reconcile">
+        <i class="layui-icon layui-icon-template-1"></i> 年底对账
+    </button>
+</script>
+
+<script type="text/html" id="plate-bar">
+    <button shiro:hasPermission="topon:toponPlateCard:view" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="detail">
+        <i class="layui-icon layui-icon-about"></i> 详情
+    </button>
+</script>
+
+<script type="text/html" id="grade-tpl">
+    {{# if(d.gradeLevel){ }} {{ d.gradeLevel }}档 / {{ d.gradeValue }} {{# } }}
+</script>
+
+<script type="text/html" id="status-tpl">
+    {{# if(d.status==0){ }}<span class="pear-btn pear-btn-warming pear-btn-xs">待核对</span>
+    {{# } else if(d.status==1){ }}<span class="pear-btn pear-btn-normal pear-btn-xs">已核对</span>
+    {{# } else { }}<span class="pear-btn pear-btn-success pear-btn-xs">已定档</span>{{# } }}
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery'], function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+        let MODULE_PATH = rootPath + "/ToponPlateCardController/";
+
+        let cols = [[
+            {field: 'billNo', title: '段卡号', align: 'center', width: 150},
+            {field: 'sourceNo', title: '来源单号', align: 'center', width: 130},
+            {field: 'roadName', title: '街巷名称', align: 'center', minWidth: 140},
+            {field: 'siteNo', title: '乡镇街道区划', align: 'center', width: 130},
+            {field: 'qty', title: '可编号数', align: 'center', width: 90, sort: true},
+            {field: 'fineAmt', title: '本年新编', align: 'center', width: 90, sort: true},
+            {field: 'gradeLevel', title: '容量档/折算值', align: 'center', width: 120, templet: '#grade-tpl'},
+            {field: 'status', title: '进展', align: 'center', width: 100, templet: '#status-tpl'},
+            {field: 'versionNo', title: '版本', align: 'center', width: 70},
+            {field: 'founderName', title: '创建人', align: 'center', width: 100},
+            {field: 'createTime', title: '立卡时间', align: 'center', width: 170},
+            {title: '操作', toolbar: '#plate-bar', align: 'center', width: 100, fixed: 'right'}
+        ]];
+
+        // 市局习惯从新编最多号数往下看：服务端默认按 fine_amt 倒序
+        table.render({
+            elem: '#plate-table',
+            url: MODULE_PATH + 'list',
+            page: true,
+            method: 'get',
+            cols: cols,
+            skin: 'line',
+            toolbar: '#plate-toolbar',
+            defaultToolbar: ['filter', 'print', 'exports']
+        });
+
+        table.on('tool(plate-table)', function (obj) {
+            if (obj.event === 'detail') {
+                layer.open({
+                    type: 2, title: '段卡详情 ' + obj.data.billNo, shade: 0.1,
+                    area: ['1000px', '680px'],
+                    content: MODULE_PATH + 'detail/' + obj.data.id
+                });
+            }
+        });
+
+        table.on('toolbar(plate-table)', function (obj) {
+            if (obj.event === 'register') {
+                layer.open({
+                    type: 2, title: '门楼牌号段卡登记（门脸唯一写入口）', shade: 0.1,
+                    area: ['720px', '640px'],
+                    content: MODULE_PATH + 'register'
+                });
+            } else if (obj.event === 'reconcile') {
+                $.get(MODULE_PATH + 'reconcile', function (res) {
+                    let d = res.data || {};
+                    let rows = (d.groups || []).map(function (g) {
+                        return '<tr><td>' + g.siteNo + '</td><td>' + g.segCount + '</td></tr>';
+                    }).join('');
+                    layer.open({
+                        type: 1, title: '年底对账（两种口径须对得上）', area: ['520px', '420px'],
+                        content: '<div style="padding:16px">'
+                            + '<p>市局口径（按新编号数看）段数：<b>' + d.cityTotal + '</b></p>'
+                            + '<p>区县口径（按最末一级地段归堆）段数：<b>' + d.groupTotal + '</b></p>'
+                            + '<p style="color:' + (d.matched ? '#16a75a' : '#e2231a') + '">'
+                            + (d.matched ? '两条路数对得上，账平。' : '两条路数对不上，须核查！') + '</p>'
+                            + '<table class="layui-table"><thead><tr><th>乡镇街道区划</th><th>段数</th></tr></thead>'
+                            + '<tbody>' + rows + '</tbody></table></div>'
+                    });
+                });
+            }
+        });
+
+        form.on('submit(plate-query)', function (data) {
+            table.reload('plate-table', {where: data.field, page: {curr: 1}});
+            return false;
+        });
+    });
+</script>
+</html>

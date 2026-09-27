@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('乡镇街道基础档案')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">档案名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="siteName" class="layui-input">
+                </div>
+                <label class="layui-form-label">区划代码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="siteNo" class="layui-input">
+                </div>
+                <label class="layui-form-label">情形</label>
+                <div class="layui-input-inline">
+                    <select name="status">
+                        <option value="">全部</option>
+                        <option value="0">在用</option>
+                        <option value="1">已撤并</option>
+                    </select>
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="doc-query">
+                    <i class="layui-icon layui-icon-search"></i> 查询
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="doc-table" lay-filter="doc-table"></table>
+    </div>
+</div>
+</body>
+
+<script type="text/html" id="doc-toolbar">
+    <button shiro:hasPermission="topon:toponDistrictDoc:add" class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+        <i class="layui-icon layui-icon-add-1"></i> 档案登记
+    </button>
+</script>
+
+<script type="text/html" id="doc-bar">
+    {{# if(d.status==0){ }}
+    <button shiro:hasPermission="topon:toponDistrictDoc:abolish" class="pear-btn pear-btn-danger pear-btn-sm" lay-event="abolish">撤并</button>
+    {{# } else { }}
+    <span class="layui-badge">已撤并·旧卡照查·不许重改</span>
+    {{# } }}
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery'], function () {
+        let table = layui.table, form = layui.form, $ = layui.jquery;
+        let MODULE_PATH = rootPath + "/ToponDistrictDocController/";
+        table.render({
+            elem: '#doc-table', url: MODULE_PATH + 'list', method: 'get', page: true,
+            cols: [[
+                {field: 'areaCode', title: '区县代码', width: 100},
+                {field: 'siteNo', title: '乡镇街道区划代码', width: 150},
+                {field: 'siteName', title: '档案名称', minWidth: 220},
+                {field: 'siteType', title: '地貌类', width: 110},
+                {field: 'roadName', title: '坐落(省—市—区县)', width: 220},
+                {field: 'th1Max', title: '一档上限', width: 90},
+                {field: 'th2Max', title: '二档上限', width: 90},
+                {field: 'th3Max', title: '三档上限', width: 90},
+                {field: 'status', title: '情形', width: 90, templet: function (d) {
+                        return d.status === 1
+                            ? '<span class="pear-btn pear-btn-danger pear-btn-xs">已撤并</span>'
+                            : '<span class="pear-btn pear-btn-success pear-btn-xs">在用</span>';
+                    }},
+                {title: '操作', toolbar: '#doc-bar', width: 200, align: 'center'}
+            ]],
+            toolbar: '#doc-toolbar', skin: 'line'
+        });
+        table.on('toolbar(doc-table)', function (obj) {
+            if (obj.event === 'add') {
+                layer.open({type: 2, title: '乡镇街道档案登记', area: ['640px', '620px'], content: MODULE_PATH + 'add'});
+            }
+        });
+        table.on('tool(doc-table)', function (obj) {
+            if (obj.event === 'abolish') {
+                layer.confirm('撤并后新卡挂不进，先前挂的旧卡照旧查得到。确定撤并「' + obj.data.siteName + '」？',
+                    {icon: 3}, function (idx) {
+                        layer.close(idx);
+                        layer.prompt({title: '撤并记事（可空）'}, function (v, i) {
+                            layer.close(i);
+                            $.post(MODULE_PATH + 'abolish', {id: obj.data.id, remark: v}, function (res) {
+                                if (res.code === 200) {
+                                    layer.msg(res.msg, {icon: 1}, function () { table.reload('doc-table'); });
+                                } else {
+                                    layer.alert((res.field ? '【' + res.field + '】' : '') + res.msg, {icon: 2});
+                                }
+                            });
+                        });
+                    });
+            }
+        });
+        form.on('submit(doc-query)', function (data) {
+            table.reload('doc-table', {where: data.field, page: {curr: 1}});
+            return false;
+        });
+    });
+</script>
+</html>

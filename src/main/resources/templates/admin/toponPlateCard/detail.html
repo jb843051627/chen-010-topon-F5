@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('门楼牌号段卡详情')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table class="layui-table">
+            <tbody>
+            <tr>
+                <td style="width:120px">段卡号</td><td id="f-billNo"></td>
+                <td style="width:120px">来源单号</td><td id="f-sourceNo"></td>
+            </tr>
+            <tr>
+                <td>街巷名称</td><td id="f-roadName"></td>
+                <td>乡镇街道区划</td><td id="f-siteNo"></td>
+            </tr>
+            <tr>
+                <td>可编号数</td><td id="f-qty"></td>
+                <td>本年新编</td><td id="f-fineAmt"></td>
+            </tr>
+            <tr>
+                <td>单号侧</td><td id="f-odd"></td>
+                <td>双号侧</td><td id="f-even"></td>
+            </tr>
+            <tr>
+                <td>容量档(系统折)</td><td id="f-grade"></td>
+                <td>进展 / 版本</td><td id="f-status"></td>
+            </tr>
+            <tr>
+                <td>创建人</td><td id="f-founder"></td>
+                <td>立卡时间</td><td id="f-createTime"></td>
+            </tr>
+            <tr>
+                <td>街巷全貌</td><td id="f-streetImg"></td>
+                <td>号牌实样</td><td id="f-plateImg"></td>
+            </tr>
+            </tbody>
+        </table>
+        <div style="margin:10px 0">
+            <button class="pear-btn pear-btn-warming pear-btn-sm" id="btn-check">核对</button>
+            <button class="pear-btn pear-btn-success pear-btn-sm" id="btn-finalize">定档</button>
+            <button class="pear-btn pear-btn-normal pear-btn-sm" id="btn-rearchive">街巷改属</button>
+            <button class="pear-btn pear-btn-normal pear-btn-sm" id="btn-rename">路名更动</button>
+            <button class="pear-btn pear-btn-normal pear-btn-sm" id="btn-adjust">号数增减</button>
+            <button class="pear-btn pear-btn-primary pear-btn-sm" id="btn-issue">新编/续编发号</button>
+            <button class="pear-btn pear-btn-primary pear-btn-sm" id="btn-legacy">载入老号</button>
+            <button class="pear-btn pear-btn-danger pear-btn-sm" id="btn-merge">并卡</button>
+        </div>
+    </div>
+</div>
+
+<div class="layui-card">
+    <div class="layui-card-body">
+        <div class="layui-tab layui-tab-brief">
+            <ul class="layui-tab-title">
+                <li class="layui-this">经手人续记</li>
+                <li>历史版本</li>
+                <li>已发号码台账</li>
+            </ul>
+            <div class="layui-tab-content">
+                <div class="layui-tab-item layui-show"><table id="handler-table"></table></div>
+                <div class="layui-tab-item"><table id="his-table"></table></div>
+                <div class="layui-tab-item"><table id="number-table"></table></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<script th:inline="javascript">
+    let CARD_ID = [[${card != null ? card.id : null}]];
+</script>
+<script>
+    layui.use(['table', 'element', 'jquery'], function () {
+        let table = layui.table;
+        let $ = layui.jquery;
+        let MODULE_PATH = rootPath + "/ToponPlateCardController";
+
+        function reloadAll() {
+            loadCard();
+            table.reloadData('handler-table');
+            table.reloadData('his-table');
+            table.reloadData('number-table');
+        }
+
+        function loadCard() {
+            $.get(MODULE_PATH + '/detailData/' + CARD_ID, function (res) {
+                let c = res.data || {};
+                $('#f-billNo').text(c.billNo);
+                $('#f-sourceNo').text(c.sourceNo || '—');
+                $('#f-roadName').text(c.roadName);
+                $('#f-siteNo').text(c.siteNo);
+                $('#f-qty').text(c.qty);
+                $('#f-fineAmt').text(c.fineAmt);
+                $('#f-odd').text((c.oddStartNo + '～' + c.oddEndNo));
+                $('#f-even').text((c.evenStartNo + '～' + c.evenEndNo));
+                $('#f-grade').text(c.gradeLevel ? (c.gradeLevel + '档 / 折算 ' + c.gradeValue) : '—（系统折）');
+                let st = ['待核对', '已核对', '已定档'][c.status] || '—';
+                $('#f-status').text(st + ' / 第' + (c.versionNo || 1) + '版');
+                $('#f-founder').text(c.founderName);
+                $('#f-createTime').text(c.createTime || '');
+                $('#f-streetImg').html(c.streetViewImg
+                    ? '<a href="' + rootPath + c.streetViewImg + '" target="_blank"><img src="' + rootPath + c.streetViewImg + '" style="height:60px"></a>' : '—');
+                $('#f-plateImg').html(c.plateSampleImg
+                    ? '<a href="' + rootPath + c.plateSampleImg + '" target="_blank"><img src="' + rootPath + c.plateSampleImg + '" style="height:60px"></a>' : '—');
+            });
+        }
+
+        table.render({
+            elem: '#handler-table', url: MODULE_PATH + '/handlers/' + CARD_ID, method: 'get',
+            cols: [[
+                {field: 'handlerName', title: '经手人', width: 120},
+                {field: 'action', title: '本办动作', width: 120},
+                {field: 'remark', title: '记事'},
+                {field: 'createTime', title: '时间', width: 170}
+            ]], page: false
+        });
+        table.render({
+            elem: '#his-table', url: MODULE_PATH + '/history/' + CARD_ID, method: 'get',
+            cols: [[
+                {field: 'versionNo', title: '旧版本', width: 80},
+                {field: 'changeType', title: '变动', width: 100, templet: function (d) {
+                        return {1: '街巷改属', 2: '号数增减', 3: '路名更动'}[d.changeType] || d.changeType;
+                    }},
+                {field: 'roadName', title: '旧街巷', width: 140},
+                {field: 'siteNo', title: '旧区划', width: 120},
+                {field: 'qty', title: '旧可编号数', width: 100},
+                {field: 'fineAmt', title: '旧本年新编', width: 100},
+                {field: 'gradeLevel', title: '旧档', width: 70},
+                {field: 'createBy', title: '归档经手', width: 110},
+                {field: 'createTime', title: '归档时间', width: 170}
+            ]], page: false
+        });
+        table.render({
+            elem: '#number-table', url: MODULE_PATH + '/numbers/' + CARD_ID, method: 'get',
+            cols: [[
+                {field: 'side', title: '号侧', width: 90, templet: function (d) { return d.side === 1 ? '单号侧' : '双号侧'; }},
+                {field: 'plateNo', title: '门牌号', width: 100},
+                {field: 'sourceType', title: '来号', width: 100, templet: function (d) { return d.sourceType === 1 ? '续编老号' : '新编'; }},
+                {field: 'status', title: '情形', width: 110, templet: function (d) {
+                        return ['原号在册', '空号可续', '续号在册'][d.status];
+                    }},
+                {field: 'issueYear', title: '年度', width: 90}
+            ]], page: false,
+            initSort: {field: 'side', type: 'asc'}
+        });
+        loadCard();
+
+        function post(action, data, reload) {
+            $.post(MODULE_PATH + '/' + action, data, function (res) {
+                if (res.code === 200) {
+                    layer.msg(res.msg, {icon: 1, time: 1200}, function () { if (reload !== false) reloadAll(); });
+                } else {
+                    layer.alert((res.field ? '【' + res.field + '】' : '') + (res.msg || '没办成'), {icon: 2});
+                }
+            }).fail(function () { layer.msg('接口没回话', {icon: 2}); });
+        }
+
+        $('#btn-check').on('click', function () {
+            layer.prompt({title: '核对记事（可空）'}, function (v, i) { layer.close(i); post('check', {id: CARD_ID, remark: v}); });
+        });
+        $('#btn-finalize').on('click', function () {
+            layer.prompt({title: '定档记事（可空）'}, function (v, i) { layer.close(i); post('finalize', {id: CARD_ID, remark: v}); });
+        });
+        $('#btn-rearchive').on('click', function () {
+            layer.prompt({title: '改挂档案id（新挂的乡镇街道档案）'}, function (v, i) {
+                layer.close(i);
+                layer.prompt({title: '改属记事（可空）'}, function (r, j) {
+                    layer.close(j);
+                    post('rearchive', {id: CARD_ID, newSiteId: v, remark: r});
+                });
+            });
+        });
+        $('#btn-adjust').on('click', function () {
+            layer.open({
+                type: 1, area: ['420px', '400px'], title: '号数增减（起讫号改才填，留空不动）',
+                content: '<div style="padding:18px">'
+                    + '新可编号数：<input id="adj-qty" class="layui-input"><br>'
+                    + '新本年新编(可空)：<input id="adj-fine" class="layui-input"><br>'
+                    + '单号侧起/止：<div class="layui-row"><div class="layui-col-xs6"><input id="adj-os" placeholder="单起" class="layui-input"></div>'
+                    + '<div class="layui-col-xs6"><input id="adj-oe" placeholder="单止" class="layui-input"></div></div>'
+                    + '双号侧起/止：<div class="layui-row"><div class="layui-col-xs6"><input id="adj-es" placeholder="双起" class="layui-input"></div>'
+                    + '<div class="layui-col-xs6"><input id="adj-ee" placeholder="双止" class="layui-input"></div></div>'
+                    + '记事：<input id="adj-rmk" class="layui-input"><br>'
+                    + '<button class="pear-btn pear-btn-primary pear-btn-sm" id="adj-ok">提交（容量档系统重折）</button></div>',
+                success: function () {
+                    $('#adj-ok').on('click', function () {
+                        layer.closeAll();
+                        post('adjustQty', {
+                            id: CARD_ID, qty: $('#adj-qty').val(),
+                            fineAmt: $('#adj-fine').val(),
+                            oddStartNo: $('#adj-os').val(), oddEndNo: $('#adj-oe').val(),
+                            evenStartNo: $('#adj-es').val(), evenEndNo: $('#adj-ee').val(),
+                            remark: $('#adj-rmk').val()
+                        });
+                    });
+                }
+            });
+        });
+        $('#btn-rename').on('click', function () {
+            layer.prompt({title: '坐落路名更为（旧一笔归历史）'}, function (v, i) {
+                layer.close(i);
+                layer.prompt({title: '记事（可空）'}, function (r, j) {
+                    layer.close(j);
+                    post('renameRoad', {id: CARD_ID, roadName: v, remark: r});
+                });
+            });
+        });
+        $('#btn-issue').on('click', function () {
+            layer.open({
+                type: 1, area: ['400px', '320px'], title: '新编/续编发号',
+                content: '<div style="padding:18px">'
+                    + '号侧：<select id="iss-side" class="layui-input"><option value="1">单号侧</option><option value="2">双号侧</option></select><br>'
+                    + '门牌号：<input id="iss-no" class="layui-input"><br>'
+                    + '<label><input type="checkbox" id="iss-renew"> 续编空出的老号（原号/已续号发不出去）</label><br><br>'
+                    + '记事：<input id="iss-rmk" class="layui-input"><br>'
+                    + '<button class="pear-btn pear-btn-primary pear-btn-sm" id="iss-ok">发号</button></div>',
+                success: function () {
+                    layui.form.render();
+                    $('#iss-ok').on('click', function () {
+                        layer.closeAll();
+                        post('issue', {
+                            id: CARD_ID, side: $('#iss-side').val(), plateNo: $('#iss-no').val(),
+                            renew: $('#iss-renew').is(':checked'), remark: $('#iss-rmk').val()
+                        });
+                    });
+                }
+            });
+        });
+        $('#btn-legacy').on('click', function () {
+            layer.open({
+                type: 1, area: ['400px', '320px'], title: '载入三十年前老号',
+                content: '<div style="padding:18px">'
+                    + '号侧：<select id="lg-side" class="layui-input"><option value="1">单号侧</option><option value="2">双号侧</option></select><br>'
+                    + '门牌号：<input id="lg-no" class="layui-input"><br>'
+                    + '情形：<select id="lg-st" class="layui-input"><option value="0">原号在册</option><option value="1">空号可续</option></select><br>'
+                    + '年度：<input id="lg-year" class="layui-input" placeholder="如 1996"><br>'
+                    + '<button class="pear-btn pear-btn-primary pear-btn-sm" id="lg-ok">载入</button></div>',
+                success: function () {
+                    layui.form.render();
+                    $('#lg-ok').on('click', function () {
+                        layer.closeAll();
+                        post('loadLegacy', {
+                            id: CARD_ID, side: $('#lg-side').val(), plateNo: $('#lg-no').val(),
+                            status: $('#lg-st').val(), issueYear: $('#lg-year').val()
+                        });
+                    });
+                }
+            });
+        });
+        $('#btn-merge').on('click', function () {
+            layer.prompt({title: '并卡：另一张同来源号卡的id（本卡留存）'}, function (v, i) {
+                layer.close(i);
+                layer.prompt({title: '并卡记事（可空）'}, function (r, j) {
+                    layer.close(j);
+                    post('merge', {keptId: CARD_ID, droppedId: v, remark: r});
+                });
+            });
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('乡镇街道档案登记')"/>
+</head>
+<body>
+<form class="layui-form">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="layui-form-item">
+                <label class="layui-form-label">区县代码</label>
+                <div class="layui-input-block">
+                    <input type="text" name="areaCode" maxlength="6" autocomplete="off" placeholder="6位；区划代码前6位须一致" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">区划代码</label>
+                <div class="layui-input-block">
+                    <input type="text" name="siteNo" maxlength="9" autocomplete="off" placeholder="9位乡镇街道代码，前6位=区县代码" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">档案名称</label>
+                <div class="layui-input-block">
+                    <input type="text" name="siteName" autocomplete="off" placeholder="如：临川市城东区明德街道办事处基础档案" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">地貌类</label>
+                <div class="layui-input-block">
+                    <select name="siteType">
+                        <option value="">请选择</option>
+                        <option value="城镇街区">城镇街区</option>
+                        <option value="乡村区域">乡村区域</option>
+                        <option value="毗界地段">毗界地段</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">坐落</label>
+                <div class="layui-input-block">
+                    <input type="text" name="roadName" autocomplete="off" placeholder="省—市—区县" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">一档上限</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="th1Max" min="1" class="layui-input">
+                </div>
+                <label class="layui-form-label">二档</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="th2Max" min="1" class="layui-input">
+                </div>
+                <label class="layui-form-label">三档</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="th3Max" min="1" class="layui-input">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit lay-filter="doc-save">
+                <i class="layui-icon layui-icon-ok"></i> 登记
+            </button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">重置</button>
+        </div>
+    </div>
+</form>
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['form', 'jquery'], function () {
+        let form = layui.form, $ = layui.jquery;
+        let MODULE_PATH = rootPath + "/ToponDistrictDocController";
+        form.on('submit(doc-save)', function (data) {
+            $.post(MODULE_PATH + '/addSave', data.field, function (res) {
+                if (res.code === 200) {
+                    layer.msg(res.msg, {icon: 1, time: 1200}, function () {
+                        parent.layer.close(parent.layer.getFrameIndex(window.name));
+                        parent.layui.table.reload('doc-table');
+                    });
+                } else {
+                    layer.alert((res.field ? '【' + res.field + '】' : '') + (res.msg || '档案没立成'), {icon: 2});
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

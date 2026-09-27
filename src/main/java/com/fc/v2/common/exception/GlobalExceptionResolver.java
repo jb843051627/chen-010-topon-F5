@@ -110,6 +110,18 @@ public class GlobalExceptionResolver{
     }
     
     /**
+     * 门楼牌号段卡业务校验异常：成与不成以接口回话为凭，错在哪一格一并回清。
+     */
+    @ExceptionHandler(PlateCardException.class)
+    public AjaxResult plateCardException(PlateCardException e)
+    {
+        logger.warn("段卡校验不通过[{}]: {}", e.getField(), e.getMessage());
+        AjaxResult json = AjaxResult.error(e.getMessage());
+        json.put("field", e.getField());
+        return json;
+    }
+
+    /**
      * 拦截未知的运行时异常
      */
     @ExceptionHandler(RuntimeException.class)

@@ -32,6 +32,11 @@ public class TToponDistrictDoc implements Serializable {
     @ApiModelProperty(value = "主键")
     private Long id;
 
+    /** 所属区县代码(区划代码前6位) */
+    @TableField("area_code")
+    @ApiModelProperty(value = "所属区县代码")
+    private String areaCode;
+
     /** 乡镇街道区划代码 */
     @TableField("site_no")
     @ApiModelProperty(value = "乡镇街道区划代码")
@@ -110,6 +115,14 @@ public class TToponDistrictDoc implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getAreaCode() {
+        return areaCode;
+    }
+
+    public void setAreaCode(String areaCode) {
+        this.areaCode = areaCode;
     }
 
     public String getSiteNo() {

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('门楼牌号段卡登记')"/>
+</head>
+<body>
+<form class="layui-form" id="plate-register-form">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="layui-form-item">
+                <label class="layui-form-label">段卡号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="billNo" autocomplete="off" placeholder="门楼牌号段卡号，系统不代填，由登记者写明" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">来源单号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="sourceNo" autocomplete="off" placeholder="区里自报/市局抄送的来源号；撞此号的自动并成一条" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">街巷名称</label>
+                <div class="layui-input-block">
+                    <input type="text" name="roadName" autocomplete="off" placeholder="坐落路名" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">挂档案</label>
+                <div class="layui-input-block">
+                    <select name="siteId" lay-search>
+                        <option value="">请选择在用的乡镇街道档案</option>
+                        <option th:each="d : ${docs}" th:value="${d.id}"
+                                th:text="${d.siteName} + '（' + ${d.siteNo} + '）'"></option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">可编号数</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="qty" min="1" step="1" autocomplete="off" placeholder="单双侧合计，正整数" class="layui-input">
+                </div>
+                <label class="layui-form-label">本年新编</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="fineAmt" min="0" step="1" value="0" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">单号侧起号</label>
+                <div class="layui-input-inline" style="width:120px">
+                    <input type="number" name="oddStartNo" class="layui-input" placeholder="单">
+                </div>
+                <label class="layui-form-label" style="width:60px">止号</label>
+                <div class="layui-input-inline" style="width:120px">
+                    <input type="number" name="oddEndNo" class="layui-input" placeholder="单">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">双号侧起号</label>
+                <div class="layui-input-inline" style="width:120px">
+                    <input type="number" name="evenStartNo" class="layui-input" placeholder="双">
+                </div>
+                <label class="layui-form-label" style="width:60px">止号</label>
+                <div class="layui-input-inline" style="width:120px">
+                    <input type="number" name="evenEndNo" class="layui-input" placeholder="双">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">街巷全貌</label>
+                <div class="layui-input-inline">
+                    <button type="button" class="pear-btn pear-btn-md" id="pick-street">选择影像</button>
+                    <span id="street-name" class="layui-badge-rim">未选</span>
+                    <input type="file" id="street-file" accept="image/*" style="display:none">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">号牌实样</label>
+                <div class="layui-input-inline">
+                    <button type="button" class="pear-btn pear-btn-md" id="pick-plate">选择影像</button>
+                    <span id="plate-name" class="layui-badge-rim">未选</span>
+                    <input type="file" id="plate-file" accept="image/*" style="display:none">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">备注</label>
+                <div class="layui-input-block">
+                    <textarea name="remark" placeholder="勘办记事" class="layui-textarea"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit lay-filter="plate-save">
+                <i class="layui-icon layui-icon-ok"></i> 登记
+            </button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">
+                <i class="layui-icon layui-icon-refresh"></i> 重置
+            </button>
+        </div>
+    </div>
+</form>
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['form', 'jquery'], function () {
+        let form = layui.form;
+        let $ = layui.jquery;
+        let MODULE_PATH = rootPath + "/ToponPlateCardController";
+
+        // 选影像（不预上传，随登记一次提交，成与不成凭接口回话）
+        $('#pick-street').on('click', function () { $('#street-file').click(); });
+        $('#pick-plate').on('click', function () { $('#plate-file').click(); });
+        $('#street-file').on('change', function () {
+            $('#street-name').text(this.files[0] ? this.files[0].name : '未选');
+        });
+        $('#plate-file').on('change', function () {
+            $('#plate-name').text(this.files[0] ? this.files[0].name : '未选');
+        });
+
+        form.on('submit(plate-save)', function () {
+            // 容量档、创建人、进展不在表单里——那些只由系统定
+            let fd = new FormData(document.getElementById('plate-register-form'));
+            let sf = $('#street-file')[0].files[0];
+            let pf = $('#plate-file')[0].files[0];
+            if (sf) fd.append('streetViewFile', sf);
+            if (pf) fd.append('plateSampleFile', pf);
+            let loading = layer.load();
+            $.ajax({
+                url: MODULE_PATH + '/registerSave',
+                type: 'post',
+                data: fd,
+                processData: false,
+                contentType: false,
+                success: function (result) {
+                    layer.close(loading);
+                    // 页面不涂改回话：接口说成就成、说哪格不对就照原话摆出来
+                    if (result.code === 200) {
+                        layer.msg(result.msg, {icon: 1, time: 1400}, function () {
+                            parent.layer.close(parent.layer.getFrameIndex(window.name));
+                            parent.layui.table.reload('plate-table');
+                        });
+                    } else {
+                        let tip = result.msg || '登记没成';
+                        if (result.field) {
+                            tip = '【' + result.field + '】' + tip;
+                        }
+                        layer.alert(tip, {icon: 2, title: '登记回话'});
+                    }
+                },
+                error: function () {
+                    layer.close(loading);
+                    layer.msg('接口没回话，请稍后再试', {icon: 2});
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>
